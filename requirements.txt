@@ -1,0 +1,5 @@
+pbr
+wheel
+selenium>=4.0
+webdriver-manager
+pyvirtualdisplay
