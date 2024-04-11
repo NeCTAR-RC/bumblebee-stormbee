@@ -14,6 +14,14 @@ from stormbee.constants import \
 from stormbee import scenarios
 
 
+def set_viewport_size(driver, width, height):
+    window_size = driver.execute_script("""
+        return [window.outerWidth - window.innerWidth + arguments[0],
+          window.outerHeight - window.innerHeight + arguments[1]];
+        """, width, height)
+    driver.set_window_size(*window_size)
+
+
 class BumblebeeDriver:
 
     def __init__(self, config, site_name):
@@ -27,10 +35,21 @@ class BumblebeeDriver:
             service=Service(GeckoDriverManager().install()))
         self.poll_seconds = int(self.site_config.get('PollSeconds', '5'))
         self.poll_retries = int(self.site_config.get('PollRetries', '50'))
+        set_viewport_size(self.driver, 1024, 768)
 
     def close(self):
         if self.driver:
             self.driver.close()
+
+    def run(self, action, args, extra_args):
+        if action == 'scenario':
+            self.scenario(args, extra_args)
+        elif extra_args:
+            raise Exception(
+                f"Unmatched arguments and options for {action}: {extra_args}")
+        else:
+            func = getattr(self, args.action)
+            func(args)
 
     @contextmanager
     def timeit_context(self, description):
@@ -103,9 +122,9 @@ class BumblebeeDriver:
                 desktop_type = self.get_current_desktop()
                 print(f"Current desktop's type is '{desktop_type}'")
 
-    def scenario(self, args):
+    def scenario(self, args, extra_args):
         scenario_cls = scenarios.find_scenario_class(args.name)
-        scenario = scenario_cls(self, args)
+        scenario = scenario_cls(self, args, extra_args)
         scenario.run()
 
     def launch(self, args):
@@ -123,10 +142,23 @@ class BumblebeeDriver:
             launch_url = \
                 f"{self.site_config['BaseUrl']}/desktop/{desktop_type}"
             self.driver.get(launch_url)
+
             print(f"Launching '{desktop_type}' desktop in "
                   f"zone '{zone or 'default'}'")
-            modal_launch_button = self.driver.find_element(
-                By.XPATH, '//button[contains(text(), "Create Desktop")]')
+            try:
+                modal_launch_button = self.driver.find_element(
+                    By.XPATH, '//button[contains(text(), "Create Desktop")]')
+            except NoSuchElementException as e:
+                # Deal with the case of an unknown desktop type.
+                try:
+                    self.driver.find_element(
+                        By.XPATH, ('//h1[contains(text(), "Page Not Found") '
+                                   'or contains(text(), "Page not found")]'))
+                    raise Exception(f"Desktop type '{desktop_type}' is not "
+                                    "recognized by the server.")
+                except NoSuchElementException:
+                    raise e
+
             modal_launch_button.click()
 
             if zone:
@@ -170,8 +202,8 @@ class BumblebeeDriver:
             retries += 1
 
     def find_and_click_modal_command(self, verb, text):
-        modal_id = \
-            f'researcher_desktop-{self.get_current_desktop()}-{verb}-modal'
+        desktop = self.get_current_desktop()
+        modal_id = f'researcher_desktop-{desktop}-{verb}-modal'
         modal_button = self.driver.find_element(
             By.XPATH, f'//button[@data-bs-target="#{modal_id}"]')
         modal_button.click()

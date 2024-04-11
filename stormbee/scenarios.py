@@ -26,10 +26,11 @@ def find_scenario_class(name):
 
 class ScenarioBase(object):
 
-    def __init__(self, bd, args):
+    def __init__(self, bd, args, extra_args):
         self.bd = bd
         self.parser = argparse.ArgumentParser()
         self.args = copy(args)
+        self.extra_args = extra_args
 
     def add_scenario_arguments(self):
         """Add argument specifications to the arg parser.
@@ -65,7 +66,7 @@ class ScenarioBase(object):
         """
 
         self.add_scenario_arguments()
-        self.parser.parse_args(args=self.args.args, namespace=self.args)
+        self.parser.parse_args(args=self.extra_args, namespace=self.args)
         self.do_run_scenario()
 
 
@@ -92,8 +93,7 @@ class DesktopLifecycleScenario(ScenarioBase):
             state = self.bd.get_desktop_state()
         if state != NO_DESKTOP:
             raise Exception(f"Reset failed: state is '{state}'")
-        print("Scenario styarting")
-        with self.bd.timeit_context("S1 scenario"):
+        with self.bd.timeit_context(f"{self.args.name} scenario"):
             self.bd.launch(self.args)
             self.bd.boost(self.args)
             self.bd.downsize(self.args)

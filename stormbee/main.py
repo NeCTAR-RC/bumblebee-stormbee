@@ -45,10 +45,8 @@ def main():
     scenario = sub_parsers.add_parser('scenario', help='Run a scenario.')
     scenario.add_argument('name',
                           help='the name of the scenario')
-    scenario.add_argument('args', nargs='*',
-                          help='scenario arguments')
 
-    args = parser.parse_args()
+    (args, extra_args) = parser.parse_known_args()
     config = configparser.ConfigParser()
     config_file = args.config or expanduser("~/.stormbee.ini")
     if not config.read(config_file):
@@ -64,12 +62,11 @@ def main():
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    with Display(backend="xvfb", visible=0, size=[800, 600]) as disp:
+    with Display(backend="xvfb", visible=0, size=[800, 600]):
         bd = BumblebeeDriver(config, site_name)
         try:
             bd.login(args)
-            func = getattr(bd, args.action)
-            func(args)
+            bd.run(args.action, args, extra_args)
         finally:
             # Don't leak external web browser processes!
             bd.close()
