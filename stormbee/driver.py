@@ -1,7 +1,8 @@
 from contextlib import contextmanager
 import time
 
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, \
+    ElementClickInterceptedException
 from selenium.webdriver.common.by import By
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.service import Service
@@ -35,6 +36,10 @@ class BumblebeeDriver:
             service=Service(GeckoDriverManager().install()))
         self.poll_seconds = int(self.site_config.get('PollSeconds', '5'))
         self.poll_retries = int(self.site_config.get('PollRetries', '50'))
+
+        # An alternative to the following would be to set the screen
+        # size via an options argument to the driver constructor:
+        # see https://stackoverflow.com/a/55878622/139985
         set_viewport_size(self.driver, 1024, 768)
 
     def close(self):
@@ -159,7 +164,16 @@ class BumblebeeDriver:
                 except NoSuchElementException:
                     raise e
 
-            modal_launch_button.click()
+            try:
+                modal_launch_button.click()
+            except ElementClickInterceptedException as e:
+                # Deal with the case of a disabled launch button
+                try:
+                    self.driver.find_element(
+                        By.XPATH, '//span[@data-bs-content]')
+                    raise Exception("User already has a desktop!")
+                except NoSuchElementException:
+                    raise e
 
             if zone:
                 select = Select(self.driver.find_element(
