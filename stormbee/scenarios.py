@@ -10,6 +10,8 @@ from stormbee.constants import \
 def find_scenario_class(name):
     if name == "lifecycle":
         return DesktopLifecycleScenario
+    elif name == "basic":
+        return DesktopBasicScenario
     else:
         try:
             pkg = importlib.import_module(name)
@@ -71,7 +73,7 @@ class ScenarioBase(object):
 
 
 class DesktopLifecycleScenario(ScenarioBase):
-    """This is the basic "test if Bumblebee is working" Scenario.
+    """This is the full "test if Bumblebee is working" Scenario.
 
     The scenario launches, a desktop, shelves and unshelves it, boosts
     and downsizes it, reboots it and finally deletes it.
@@ -101,5 +103,30 @@ class DesktopLifecycleScenario(ScenarioBase):
             self.bd.unshelve(self.args)
             self.args.hard = True
             self.bd.reboot(self.args)
+            self.bd.delete(self.args)
+        print("Scenario completed")
+
+
+class DesktopBasicScenario(ScenarioBase):
+    "This Scenario simply launches and deletes a desktop."
+
+    def add_scenario_arguments(self):
+        self.add_argument('-d', '--desktop', action='store',
+                          help='the type of desktop to launch')
+        self.add_argument('-z', '--zone', action='store',
+                          help='the availability zone to launch in')
+
+    def do_run_scenario(self):
+
+        state = self.bd.get_desktop_state()
+        if state in [DESKTOP_EXISTS, DESKTOP_SHELVED,
+                     DESKTOP_SUPERSIZED, DESKTOP_FAILED]:
+            print("Reset: deleting existing desktop")
+            self.bd.delete(self.args)
+            state = self.bd.get_desktop_state()
+        if state != NO_DESKTOP:
+            raise Exception(f"Reset failed: state is '{state}'")
+        with self.bd.timeit_context(f"{self.args.name} scenario"):
+            self.bd.launch(self.args)
             self.bd.delete(self.args)
         print("Scenario completed")
