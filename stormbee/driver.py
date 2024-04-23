@@ -273,7 +273,7 @@ class BumblebeeDriver:
                 raise Exception("Unshelving did not complete")
 
     def reboot(self, args):
-        with self.timeit_context('Unshelve Desktop'):
+        with self.timeit_context('Reboot Desktop'):
             state = self.get_desktop_state()
             if state not in [DESKTOP_EXISTS, DESKTOP_SUPERSIZED]:
                 self.diagnose_desktop()
