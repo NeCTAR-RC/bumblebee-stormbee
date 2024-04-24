@@ -176,9 +176,23 @@ class BumblebeeDriver:
                     raise e
 
             if zone:
-                select = Select(self.driver.find_element(
-                    By.ID, f"researcher_workspace-{desktop_type}-zone"))
-                select.select_by_value(zone)
+                # If multiple zones are applicable, the UI has a 'select'
+                # element.  If only one, there is a 'p' element whose 'id'
+                # contains the zone.  If none it is different again.
+                try:
+                    select = Select(self.driver.find_element(
+                        By.ID, f"researcher_workspace-{desktop_type}-zone"))
+                    try:
+                        select.select_by_value(zone)
+                    except NoSuchElementException:
+                        raise Exception(f"Zone {zone} not understood (1)")
+                except NoSuchElementException:
+                    try:
+                        p = self.driver.find_element(
+                            By.ID,
+                            f"researcher_workspace-{desktop_type}-{zone}")
+                    except NoSuchElementException:
+                        raise Exception(f"Zone {zone} not understood (2)")
 
             create_button = self.driver.find_element(
                 By.XPATH, '//button[text()="Create"]')
