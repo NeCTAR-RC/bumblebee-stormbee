@@ -2,9 +2,12 @@ import argparse
 import configparser
 import logging
 from os.path import expanduser
+import sys
+import traceback
 
 from pyvirtualdisplay import Display
 from stormbee.driver import BumblebeeDriver
+from stormbee.nagios import report
 
 
 def main():
@@ -26,6 +29,9 @@ def main():
         '-s', '--site', action='store',
         help="choose Bumblebee site to interact with.  Values are "
         "the section names in the config file.")
+    parser.add_argument(
+        '--nagios', action='store_true',
+        help='report results as a nagios event')
     sub_parsers = parser.add_subparsers(help="Subcommand help",
                                         dest='action')
     sub_parsers.add_parser('status', help='Show status of desktop')
@@ -50,27 +56,49 @@ def main():
     config = configparser.ConfigParser()
     config_file = args.config or expanduser("~/.stormbee.ini")
     if not config.read(config_file):
-        raise Exception(f"Cannot read the config file: '{config_file}'")
+        print(f"Cannot read the config file: '{config_file}'")
+        exit(code=2)
     site_name = args.site or config['DEFAULT'].get('DefaultSite')
     if not site_name:
-        raise Exception("We need --site option or a DefaultSite "
-                        "in the config file")
+        print("We need --site option or a DefaultSite in the config file")
+        exit(code=2)
     if site_name not in config:
-        raise Exception(f"There is no section for site '{site_name}' "
-                        "in the config file")
+        print(f"There is no section for site '{site_name}' "
+              "in the config file")
+        exit(code=2)
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
+    failure = None
     with Display(backend="xvfb", visible=0, size=[800, 600]):
         bd = BumblebeeDriver(config, site_name)
         try:
             bd.login(args)
             bd.run(args.action, args, extra_args)
+        except Exception:
+            failure = sys.exc_info()
         finally:
             # Don't leak external web browser processes!
             bd.close()
-        print('finished')
+
+    if args.nagios:
+        if failure:
+            report(config[site_name],
+                   state=2,
+                   output=f"ERROR: {args.action} failed: {str(failure)}"
+                   verbose=args.debug)
+        else:
+            report(config[site_name],
+                   state=0,
+                   output=f"OK: {args.action} succeeded",
+                   verbose=args.debug)
+    if failure:
+        print(f"Stormbee failure for action {args.action} on site {site_name}")
+        traceback.print_exception(*failure)
+        exit(code=1)
+    else:
+        exit(code=0)
 
 
 if __name__ == "__main__":

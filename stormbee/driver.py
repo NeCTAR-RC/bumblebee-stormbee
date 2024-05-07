@@ -188,7 +188,7 @@ class BumblebeeDriver:
                         raise Exception(f"Zone {zone} not understood (1)")
                 except NoSuchElementException:
                     try:
-                        p = self.driver.find_element(
+                        self.driver.find_element(
                             By.ID,
                             f"researcher_workspace-{desktop_type}-{zone}")
                     except NoSuchElementException:
