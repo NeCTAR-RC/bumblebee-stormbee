@@ -86,7 +86,7 @@ def main():
         if failure:
             report(config[site_name],
                    state=2,
-                   output=f"ERROR: {args.action} failed: {str(failure)}"
+                   output=f"ERROR: {args.action} failed: {str(failure)}",
                    verbose=args.debug)
         else:
             report(config[site_name],
