@@ -87,12 +87,12 @@ def main():
             report(config[site_name],
                    state=2,
                    output=f"ERROR: {args.action} failed: {str(failure)}",
-                   verbose=args.debug)
+                   verbose=True)
         else:
             report(config[site_name],
                    state=0,
                    output=f"OK: {args.action} succeeded",
-                   verbose=args.debug)
+                   verbose=True)
     if failure:
         print(f"Stormbee failure for action {args.action} on site {site_name}")
         traceback.print_exception(*failure)
