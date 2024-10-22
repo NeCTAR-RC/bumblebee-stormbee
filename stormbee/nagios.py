@@ -11,9 +11,14 @@ def report(config_section, state=0, output="OK", verbose=False):
         hostname = config_section['NagiosTargetHost']
         url = config_section['NagiosURL']
         token = config_section['NagiosToken']
+
+        # This is a bit clunky the nagios "service name" *should* be
+        # derived from the scenario we are running, the --site and
+        # the --zone.
+        service_name = config_section['NagiosServiceName']
     except KeyError:
-        print("Missing NagiosTargetHost, NagiosURL or NagiosToken "
-              "config settings for the selected site.  "
+        print("Missing NagiosTargetHost, NagiosURL, NagiosToken or "
+              "NagiosServiceName config settings for the selected site.  "
               "Skipping Nagios reporting.")
         return None
 
@@ -21,7 +26,7 @@ def report(config_section, state=0, output="OK", verbose=False):
     checkresult = ET.SubElement(checkresults, 'checkresult',
                                 type='service', checktype='1')
     ET.SubElement(checkresult, 'hostname').text = hostname
-    ET.SubElement(checkresult, 'servicename').text = 'bumblebee-lifecycle'
+    ET.SubElement(checkresult, 'servicename').text = service_name
     ET.SubElement(checkresult, 'state').text = str(state)
     ET.SubElement(checkresult, 'output').text = output
     xml = ET.tostring(checkresults, 'utf-8')

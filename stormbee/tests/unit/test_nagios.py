@@ -8,7 +8,8 @@ from stormbee.nagios import report
 CONF = {
     'NagiosTargetHost': 'vds.example.com',
     'NagiosURL': 'http://nagios.example.com/xrdp-endpoint',
-    'NagiosToken': 'magic'
+    'NagiosToken': 'magic',
+    'NagiosServiceName': 'silver',
 }
 
 
@@ -31,7 +32,7 @@ class NagiosTests(TestCase):
         data = ('<checkresults>'
                 '<checkresult type="service" checktype="1">'
                 f'<hostname>{CONF["NagiosTargetHost"]}</hostname>'
-                '<servicename>bumblebee-lifecycle</servicename>'
+                f'<servicename>{CONF["NagiosServiceName"]}</servicename>'
                 '<state>42</state>'
                 '<output>cheese</output>'
                 '</checkresult>'
