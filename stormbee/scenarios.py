@@ -100,18 +100,7 @@ class DesktopLifecycleScenario(ScenarioBase):
     """
 
     def add_scenario_arguments(self):
-        self.add_argument(
-            '-d',
-            '--desktop',
-            action='store',
-            help='the type of desktop to launch',
-        )
-        self.add_argument(
-            '-z',
-            '--zone',
-            action='store',
-            help='the availability zone to launch in',
-        )
+        pass
 
     def do_run_scenario(self):
         state = self.bd.get_desktop_state()
@@ -127,9 +116,13 @@ class DesktopLifecycleScenario(ScenarioBase):
         if state != NO_DESKTOP:
             raise Exception(f"Reset failed: state is '{state}'")
         with self.bd.timeit_context(f"{self.args.name} scenario"):
+            is_boostable = self.bd.is_boostable(self.args)
             self.bd.launch(self.args)
-            self.bd.boost(self.args)
-            self.bd.downsize(self.args)
+            if is_boostable:
+                self.bd.boost(self.args)
+                self.bd.downsize(self.args)
+            else:
+                print("Reset: skipping boost / downsize: not boostable")
             self.bd.shelve(self.args)
             self.bd.unshelve(self.args)
             self.args.hard = True
@@ -142,18 +135,7 @@ class DesktopBasicScenario(ScenarioBase):
     "This Scenario simply launches and deletes a desktop."
 
     def add_scenario_arguments(self):
-        self.add_argument(
-            '-d',
-            '--desktop',
-            action='store',
-            help='the type of desktop to launch',
-        )
-        self.add_argument(
-            '-z',
-            '--zone',
-            action='store',
-            help='the availability zone to launch in',
-        )
+        pass
 
     def do_run_scenario(self):
         state = self.bd.get_desktop_state()

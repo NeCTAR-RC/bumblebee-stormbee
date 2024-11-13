@@ -58,7 +58,8 @@ class BumblebeeDriver:
         self.site_config = config[site_name]
         self.user_name = self.site_config['Username']
         self.password = self.site_config['Password']
-        self.home_url = f"{self.site_config['BaseUrl']}/home/"
+        self.base_url = self.site_config['BaseUrl']
+        self.home_url = f"{self.base_url}/home/"
         self.driver = Firefox(service=Service(GeckoDriverManager().install()))
         self.poll_seconds = int(self.site_config.get('PollSeconds', '5'))
         self.poll_retries = int(self.site_config.get('PollRetries', '50'))
@@ -149,6 +150,25 @@ class BumblebeeDriver:
         id = div.get_attribute('id')
         return id.split('-')[1]
 
+    def is_boostable(self, args):
+        "Test if the target desktop type is valid and supports Boost"
+
+        desktop_type = args.desktop or self.site_config['DesktopType']
+
+        self.driver.get(f"{self.base_url}/desktop/{desktop_type}")
+        try:
+            self.driver.find_element(By.XPATH, '//h6[text()="DEFAULT SIZE"]')
+        except NoSuchElementException:
+            raise Exception(
+                "Can't find details for desktop type "
+                f"'{desktop_type}' - does it exist?"
+            )
+        try:
+            self.driver.find_element(By.XPATH, '//h6[text()="BOOST SIZE"]')
+            return True
+        except NoSuchElementException:
+            return False
+
     def diagnose_desktop(self):
         state = self.get_desktop_state()
         raise Exception(f"Desktop in unexpected state: '{state}'")
@@ -184,9 +204,7 @@ class BumblebeeDriver:
             # for the desktop.  Unfortunately, there is no 'id' on the <a>
             # element for easy identification.  There is only the 'href' ...
             # which is what we should be extracting!
-            launch_url = (
-                f"{self.site_config['BaseUrl']}/desktop/{desktop_type}"
-            )
+            launch_url = f"{self.base_url}/desktop/{desktop_type}"
             self.driver.get(launch_url)
 
             print(
