@@ -1,30 +1,57 @@
+#   Licensed under the Apache License, Version 2.0 (the "License"); you may
+#   not use this file except in compliance with the License. You may obtain
+#   a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#   WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#   License for the specific language governing permissions and limitations
+#   under the License.
+#
+
+
 from contextlib import contextmanager
 import time
 
-from selenium.common.exceptions import NoSuchElementException, \
-    ElementClickInterceptedException
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    ElementClickInterceptedException,
+)
 from selenium.webdriver.common.by import By
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.ui import Select
 from webdriver_manager.firefox import GeckoDriverManager
 
-from stormbee.constants import \
-    DESKTOP_SUPERSIZED, DESKTOP_EXISTS, DESKTOP_SHELVED, DESKTOP_FAILED, \
-    WORKFLOW_RUNNING, NO_DESKTOP, STATE_TOS, STATE_NOT_LOGGED_IN, STATE_UNKNOWN
+from stormbee.constants import (
+    DESKTOP_SUPERSIZED,
+    DESKTOP_EXISTS,
+    DESKTOP_SHELVED,
+    DESKTOP_FAILED,
+    WORKFLOW_RUNNING,
+    NO_DESKTOP,
+    STATE_TOS,
+    STATE_NOT_LOGGED_IN,
+    STATE_UNKNOWN,
+)
 from stormbee import scenarios
 
 
 def set_viewport_size(driver, width, height):
-    window_size = driver.execute_script("""
+    window_size = driver.execute_script(
+        """
         return [window.outerWidth - window.innerWidth + arguments[0],
           window.outerHeight - window.innerHeight + arguments[1]];
-        """, width, height)
+        """,
+        width,
+        height,
+    )
     driver.set_window_size(*window_size)
 
 
 class BumblebeeDriver:
-
     def __init__(self, config, site_name):
         self.site_name = site_name
         self.config = config
@@ -32,8 +59,7 @@ class BumblebeeDriver:
         self.user_name = self.site_config['Username']
         self.password = self.site_config['Password']
         self.home_url = f"{self.site_config['BaseUrl']}/home/"
-        self.driver = Firefox(
-            service=Service(GeckoDriverManager().install()))
+        self.driver = Firefox(service=Service(GeckoDriverManager().install()))
         self.poll_seconds = int(self.site_config.get('PollSeconds', '5'))
         self.poll_retries = int(self.site_config.get('PollRetries', '50'))
 
@@ -51,7 +77,8 @@ class BumblebeeDriver:
             self.scenario(args, extra_args)
         elif extra_args:
             raise Exception(
-                f"Unmatched arguments and options for {action}: {extra_args}")
+                f"Unmatched arguments and options for {action}: {extra_args}"
+            )
         else:
             func = getattr(self, args.action)
             func(args)
@@ -62,8 +89,10 @@ class BumblebeeDriver:
         start_time = time.time()
         yield
         elapsed_time = time.time() - start_time
-        print(f'Finished {description} finished in '
-              f'{int(elapsed_time * 1_000)} ms')
+        print(
+            f'Finished {description} finished in '
+            f'{int(elapsed_time * 1_000)} ms'
+        )
 
     def get_desktop_state(self):
         "Figure out the current state of the user's desktop."
@@ -71,24 +100,30 @@ class BumblebeeDriver:
         if self.driver.current_url != self.home_url:
             self.driver.get(self.home_url)
         if self.driver.title in [
-                self.site_config['KeycloakLoginTitle'],
-                self.site_config['ClassicLoginTitle']]:
+            self.site_config['KeycloakLoginTitle'],
+            self.site_config['ClassicLoginTitle'],
+        ]:
             return STATE_NOT_LOGGED_IN
         states = [
-            ('//small[contains(text(), "Your boosted desktop")]',
-             DESKTOP_SUPERSIZED),
-            ('//h3[contains(text(), "Your Virtual Desktop is")]',
-             DESKTOP_EXISTS),
-            ('//h3[contains(text(), "Your Desktop is currently shelved")]',
-             DESKTOP_SHELVED),
-            ('//p[contains(text(), "Virtual Desktop Error")]',
-             DESKTOP_FAILED),
-            ('//p[contains(text(), "worker is busy")]',
-             WORKFLOW_RUNNING),
-            ('//h4[contains(text(), "You haven\'t created a Desktop")]',
-             NO_DESKTOP),
-            ('//h1[contains(text(), "Terms of Service")]',
-             STATE_TOS),
+            (
+                '//small[contains(text(), "Your boosted desktop")]',
+                DESKTOP_SUPERSIZED,
+            ),
+            (
+                '//h3[contains(text(), "Your Virtual Desktop is")]',
+                DESKTOP_EXISTS,
+            ),
+            (
+                '//h3[contains(text(), "Your Desktop is currently shelved")]',
+                DESKTOP_SHELVED,
+            ),
+            ('//p[contains(text(), "Virtual Desktop Error")]', DESKTOP_FAILED),
+            ('//p[contains(text(), "worker is busy")]', WORKFLOW_RUNNING),
+            (
+                '//h4[contains(text(), "You haven\'t created a Desktop")]',
+                NO_DESKTOP,
+            ),
+            ('//h1[contains(text(), "Terms of Service")]', STATE_TOS),
         ]
         for xpath, state in states:
             try:
@@ -106,7 +141,8 @@ class BumblebeeDriver:
 
         try:
             div = self.driver.find_element(
-                By.XPATH, '//div[starts-with(@id, "researcher_desktop")]')
+                By.XPATH, '//div[starts-with(@id, "researcher_desktop")]'
+            )
         except NoSuchElementException:
             raise Exception("There is no current desktop")
 
@@ -121,9 +157,13 @@ class BumblebeeDriver:
         with self.timeit_context('Desktop status'):
             state = self.get_desktop_state()
             print(f"Current status is '{state}'")
-            if state in [DESKTOP_SUPERSIZED, DESKTOP_EXISTS,
-                         DESKTOP_SHELVED, DESKTOP_FAILED,
-                         WORKFLOW_RUNNING]:
+            if state in [
+                DESKTOP_SUPERSIZED,
+                DESKTOP_EXISTS,
+                DESKTOP_SHELVED,
+                DESKTOP_FAILED,
+                WORKFLOW_RUNNING,
+            ]:
                 desktop_type = self.get_current_desktop()
                 print(f"Current desktop's type is '{desktop_type}'")
 
@@ -144,23 +184,33 @@ class BumblebeeDriver:
             # for the desktop.  Unfortunately, there is no 'id' on the <a>
             # element for easy identification.  There is only the 'href' ...
             # which is what we should be extracting!
-            launch_url = \
+            launch_url = (
                 f"{self.site_config['BaseUrl']}/desktop/{desktop_type}"
+            )
             self.driver.get(launch_url)
 
-            print(f"Launching '{desktop_type}' desktop in "
-                  f"zone '{zone or 'default'}'")
+            print(
+                f"Launching '{desktop_type}' desktop in "
+                f"zone '{zone or 'default'}'"
+            )
             try:
                 modal_launch_button = self.driver.find_element(
-                    By.XPATH, '//button[contains(text(), "Create Desktop")]')
+                    By.XPATH, '//button[contains(text(), "Create Desktop")]'
+                )
             except NoSuchElementException as e:
                 # Deal with the case of an unknown desktop type.
                 try:
                     self.driver.find_element(
-                        By.XPATH, ('//h1[contains(text(), "Page Not Found") '
-                                   'or contains(text(), "Page not found")]'))
-                    raise Exception(f"Desktop type '{desktop_type}' is not "
-                                    "recognized by the server.")
+                        By.XPATH,
+                        (
+                            '//h1[contains(text(), "Page Not Found") '
+                            'or contains(text(), "Page not found")]'
+                        ),
+                    )
+                    raise Exception(
+                        f"Desktop type '{desktop_type}' is not "
+                        "recognized by the server."
+                    )
                 except NoSuchElementException:
                     raise e
 
@@ -170,7 +220,8 @@ class BumblebeeDriver:
                 # Deal with the case of a disabled launch button
                 try:
                     self.driver.find_element(
-                        By.XPATH, '//span[@data-bs-content]')
+                        By.XPATH, '//span[@data-bs-content]'
+                    )
                     raise Exception("User already has a desktop!")
                 except NoSuchElementException:
                     raise e
@@ -180,8 +231,11 @@ class BumblebeeDriver:
                 # element.  If only one, there is a 'p' element whose 'id'
                 # contains the zone.  If none it is different again.
                 try:
-                    select = Select(self.driver.find_element(
-                        By.ID, f"researcher_workspace-{desktop_type}-zone"))
+                    select = Select(
+                        self.driver.find_element(
+                            By.ID, f"researcher_workspace-{desktop_type}-zone"
+                        )
+                    )
                     try:
                         select.select_by_value(zone)
                     except NoSuchElementException:
@@ -190,12 +244,14 @@ class BumblebeeDriver:
                     try:
                         self.driver.find_element(
                             By.ID,
-                            f"researcher_workspace-{desktop_type}-{zone}")
+                            f"researcher_workspace-{desktop_type}-{zone}",
+                        )
                     except NoSuchElementException:
                         raise Exception(f"Zone {zone} not understood (2)")
 
             create_button = self.driver.find_element(
-                By.XPATH, '//button[text()="Create"]')
+                By.XPATH, '//button[text()="Create"]'
+            )
             create_button.click()
 
             if self.driver.current_url != self.home_url:
@@ -213,7 +269,8 @@ class BumblebeeDriver:
         while retries < self.poll_retries:
             try:
                 self.driver.find_element(
-                    By.XPATH, '//p[contains(text(), "worker is busy")]')
+                    By.XPATH, '//p[contains(text(), "worker is busy")]'
+                )
             except NoSuchElementException:
                 return
             if args.show_progress:
@@ -222,7 +279,8 @@ class BumblebeeDriver:
                     bar = self.driver.find_element(By.ID, bar_id)
                     percent = bar.get_attribute('aria-valuenow')
                     message = self.driver.find_element(
-                        By.ID, "progress-bar-message").text
+                        By.ID, "progress-bar-message"
+                    ).text
                     print(f"Progress: {percent}%, message: '{message}'")
                 except NoSuchElementException:
                     pass
@@ -233,17 +291,23 @@ class BumblebeeDriver:
         desktop = self.get_current_desktop()
         modal_id = f'researcher_desktop-{desktop}-{verb}-modal'
         modal_button = self.driver.find_element(
-            By.XPATH, f'//button[@data-bs-target="#{modal_id}"]')
+            By.XPATH, f'//button[@data-bs-target="#{modal_id}"]'
+        )
         modal_button.click()
         button = self.driver.find_element(
-            By.XPATH, f'//div[@id="{modal_id}"]//button[text()="{text}"]')
+            By.XPATH, f'//div[@id="{modal_id}"]//button[text()="{text}"]'
+        )
         button.click()
 
     def delete(self, args):
         with self.timeit_context('Delete Desktop'):
             state = self.get_desktop_state()
-            if state not in [DESKTOP_EXISTS, DESKTOP_FAILED,
-                             DESKTOP_SUPERSIZED, DESKTOP_SHELVED]:
+            if state not in [
+                DESKTOP_EXISTS,
+                DESKTOP_FAILED,
+                DESKTOP_SUPERSIZED,
+                DESKTOP_SHELVED,
+            ]:
                 self.diagnose_desktop()
             self.find_and_click_modal_command('delete', 'Delete')
             if self.get_desktop_state() != NO_DESKTOP:
@@ -309,8 +373,10 @@ class BumblebeeDriver:
         print('Logging in (classic)')
         self.driver.get(self.home_url)
         if self.driver.title == self.site_config['KeycloakLoginTitle']:
-            raise Exception("Got the Keycloak login page: "
-                            "is the server's USE_OIDC setting wrong?")
+            raise Exception(
+                "Got the Keycloak login page: "
+                "is the server's USE_OIDC setting wrong?"
+            )
         elif self.driver.title == self.site_config['ClassicLoginTitle']:
             form = self.driver.find_element(By.ID, 'login-form')
             form.find_element(By.ID, 'id_username').send_keys(self.user_name)
@@ -322,21 +388,26 @@ class BumblebeeDriver:
             if self.driver.title == self.site_config['HomeTitle']:
                 print("Logged in!")
             else:
-                raise Exception("Login sequence didn't work: "
-                                f"expected '{self.site_config['HomeTitle']}', "
-                                f"got '{self.driver.title}', ")
+                raise Exception(
+                    "Login sequence didn't work: "
+                    f"expected '{self.site_config['HomeTitle']}', "
+                    f"got '{self.driver.title}', "
+                )
         elif self.driver.title == self.site_config['HomeTitle']:
             print('Already logged in')
         else:
-            raise Exception("Unexpected title for home page: "
-                            f"'{self.driver.title}'")
+            raise Exception(
+                "Unexpected title for home page: " f"'{self.driver.title}'"
+            )
 
     def oidc_login(self):
         print('Logging in (oidc)')
         self.driver.get(self.home_url)
         if self.driver.title == self.site_config['ClassicLoginTitle']:
-            raise Exception("Didn't get the Keycloak login page: "
-                            "is the server's USE_OIDC setting wrong?")
+            raise Exception(
+                "Didn't get the Keycloak login page: "
+                "is the server's USE_OIDC setting wrong?"
+            )
         elif self.driver.title == self.site_config['KeycloakLoginTitle']:
             form = self.driver.find_element(By.ID, "kc-form-login")
 
@@ -345,7 +416,8 @@ class BumblebeeDriver:
             display = form.value_of_css_property('display')
             if display == 'none':
                 self.driver.execute_script(
-                    "arguments[0].style.display = 'block';", form)
+                    "arguments[0].style.display = 'block';", form
+                )
 
             # Then fill it in and click the submit.
             username = form.find_element(By.ID, 'username')
@@ -356,10 +428,12 @@ class BumblebeeDriver:
             button.click()
             state = self.get_desktop_state()
             if state in [STATE_TOS, STATE_NOT_LOGGED_IN, STATE_UNKNOWN]:
-                raise Exception("Login sequence didn't work: "
-                                f"state is '{state}'")
+                raise Exception(
+                    "Login sequence didn't work: " f"state is '{state}'"
+                )
         elif self.driver.title == self.site_config['HomeTitle']:
             print('Already logged in')
         else:
-            raise Exception("Unexpected title for home page: "
-                            f"'{self.driver.title}'")
+            raise Exception(
+                "Unexpected title for home page: " f"'{self.driver.title}'"
+            )

@@ -2,7 +2,6 @@ from unittest import TestCase
 
 
 class MainTests(TestCase):
-
     def setUp(self, *args, **kwargs):
         super().setUp(*args, **kwargs)
 
