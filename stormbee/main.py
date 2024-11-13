@@ -55,18 +55,19 @@ def main():
         action='store_true',
         help='report results as a nagios event',
     )
-    sub_parsers = parser.add_subparsers(help="Subcommand help", dest='action')
-    sub_parsers.add_parser('status', help='Show status of desktop')
-    launch = sub_parsers.add_parser('launch', help='Launch a desktop')
-    launch.add_argument(
-        '-d', '--desktop', action='store', help='the type of desktop to launch'
+    parser.add_argument(
+        '--desktop', action='store', help='the type of desktop to launch'
     )
-    launch.add_argument(
+    parser.add_argument(
         '-z',
         '--zone',
         action='store',
         help='the availability zone to launch in',
     )
+
+    sub_parsers = parser.add_subparsers(help="Subcommand help", dest='action')
+    sub_parsers.add_parser('status', help='Show status of desktop')
+    sub_parsers.add_parser('launch', help='Launch a desktop')
     sub_parsers.add_parser('delete', help='Delete the desktop')
     sub_parsers.add_parser('shelve', help='Shelve the desktop')
     sub_parsers.add_parser('unshelve', help='Unshelve the desktop')
@@ -88,9 +89,7 @@ def main():
         print("We need --site option or a DefaultSite in the config file")
         exit(code=2)
     if site_name not in config:
-        print(
-            f"There is no section for site '{site_name}' " "in the config file"
-        )
+        print(f"There is no section for site '{site_name}' in the config file")
         exit(code=2)
 
     if args.debug:
@@ -111,7 +110,7 @@ def main():
     if args.nagios:
         # Service name will need to match what Nagios expects.
         # See `profile::core::tempest_nagios::tests:` in Hiera
-        svcname = f"tempest_{site_name}_desktop_{args.scenario}_{args.desktop}"
+        svcname = f"tempest_{args.zone}_desktop_{args.name}_{args.desktop}"
         if failure:
             report(
                 config[site_name],
