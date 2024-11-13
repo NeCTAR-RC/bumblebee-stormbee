@@ -83,13 +83,18 @@ def main():
             bd.close()
 
     if args.nagios:
+        # Service name will need to match what Nagios expects.
+        # See `profile::core::tempest_nagios::tests:` in Hiera
+        svcname = f"tempest_{site_name}_{args.desktop}_{args.scenario}_desktop"
         if failure:
             report(config[site_name],
+                   svcname,
                    state=2,
                    output=f"ERROR: {args.action} failed: {str(failure)}",
                    verbose=True)
         else:
             report(config[site_name],
+                   svcname,
                    state=0,
                    output=f"OK: {args.action} succeeded",
                    verbose=True)

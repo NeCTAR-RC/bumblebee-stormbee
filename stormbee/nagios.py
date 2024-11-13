@@ -4,21 +4,16 @@ import traceback
 from xml.etree import ElementTree as ET
 
 
-def report(config_section, state=0, output="OK", verbose=False):
+def report(config_section, service_name, state=0, output="OK", verbose=False):
     "Report results as to Nagios as a passive check using NRDP"
 
     try:
         hostname = config_section['NagiosTargetHost']
         url = config_section['NagiosURL']
         token = config_section['NagiosToken']
-
-        # This is a bit clunky the nagios "service name" *should* be
-        # derived from the scenario we are running, the --site and
-        # the --zone.
-        service_name = config_section['NagiosServiceName']
     except KeyError:
-        print("Missing NagiosTargetHost, NagiosURL, NagiosToken or "
-              "NagiosServiceName config settings for the selected site.  "
+        print("Missing NagiosTargetHost, NagiosURL or NagiosToken "
+              "config settings for the selected site.  "
               "Skipping Nagios reporting.")
         return None
 
