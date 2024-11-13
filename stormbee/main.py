@@ -85,7 +85,7 @@ def main():
     if args.nagios:
         # Service name will need to match what Nagios expects.
         # See `profile::core::tempest_nagios::tests:` in Hiera
-        svcname = f"tempest_{site_name}_{args.desktop}_{args.scenario}_desktop"
+        svcname = f"tempest_{site_name}_desktop_{args.scenario}_{args.desktop}"
         if failure:
             report(config[site_name],
                    svcname,
