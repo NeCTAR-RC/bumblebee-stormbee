@@ -22,6 +22,8 @@ from stormbee.constants import (
     DESKTOP_SHELVED,
     DESKTOP_FAILED,
     NO_DESKTOP,
+    STATE_TOS,
+    STATE_CREATE_WORKSPACE,
 )
 
 
@@ -30,6 +32,8 @@ def find_scenario_class(name):
         return DesktopLifecycleScenario
     elif name == "basic":
         return DesktopBasicScenario
+    elif name == "newuser":
+        return NewUserScenario
     else:
         try:
             pkg = importlib.import_module(name)
@@ -61,16 +65,6 @@ class ScenarioBase:
         """
 
         pass
-
-    def add_argument(self, *args, **kwargs):
-        """Register an argument with the scenario's subparser.
-
-        A scenario's add_scenario_arguments method calls 'add_argument'
-        to register scenario arguments or options.  The args and kwargs are
-        passed as-is to the subparser's add_argument call.
-        """
-
-        self.parser.add_argument(*args, **kwargs)
 
     def do_run_scenario(self):
         "This is the entry-point for the Scenario."
@@ -153,4 +147,36 @@ class DesktopBasicScenario(ScenarioBase):
         with self.bd.timeit_context(f"{self.args.name} scenario"):
             self.bd.launch(self.args)
             self.bd.delete(self.args)
+        print("Scenario completed")
+
+
+class NewUserScenario(ScenarioBase):
+    "This Scenario sets up a new user."
+
+    def add_scenario_arguments(self):
+        self.parser.add_argument(
+            '--as-required',
+            action='store_true',
+            help='skip steps that have already been done',
+        )
+
+    def do_run_scenario(self):
+        print(self.bd.get_desktop_state())
+        if self.bd.get_desktop_state() != STATE_TOS:
+            if not self.args.as_required:
+                raise Exception(
+                    f"Cannot run 'newuser' scenario for {self.bd.user_name}: "
+                    "T&Cs already agreed to?"
+                )
+        else:
+            self.bd.agree(self.args)
+
+        if self.bd.get_desktop_state() != STATE_CREATE_WORKSPACE:
+            if not self.args.as_required:
+                raise Exception(
+                    f"Cannot run 'newuser' scenario for {self.bd.user_name}: "
+                    "workspace already created?"
+                )
+        else:
+            self.bd.new_workspace(self.args)
         print("Scenario completed")

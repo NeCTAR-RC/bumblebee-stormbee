@@ -64,6 +64,16 @@ def main():
         action='store',
         help='the availability zone to launch in',
     )
+    parser.add_argument(
+        '--username',
+        action='store',
+        help='the user name to use for tests (overriding the config file)',
+    )
+    parser.add_argument(
+        '--password',
+        action='store',
+        help='the password to use for tests (overriding the config file)',
+    )
 
     sub_parsers = parser.add_subparsers(help="Subcommand help", dest='action')
     sub_parsers.add_parser('status', help='Show status of desktop')
@@ -97,7 +107,9 @@ def main():
 
     failure = None
     with Display(backend="xvfb", visible=0, size=[800, 600]):
-        bd = BumblebeeDriver(config, site_name)
+        bd = BumblebeeDriver(
+            config, site_name, username=args.username, password=args.password
+        )
         try:
             bd.login(args)
             bd.run(args.action, args, extra_args)

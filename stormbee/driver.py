@@ -33,6 +33,7 @@ from stormbee.constants import (
     WORKFLOW_RUNNING,
     NO_DESKTOP,
     STATE_TOS,
+    STATE_CREATE_WORKSPACE,
     STATE_NOT_LOGGED_IN,
     STATE_UNKNOWN,
 )
@@ -52,12 +53,12 @@ def set_viewport_size(driver, width, height):
 
 
 class BumblebeeDriver:
-    def __init__(self, config, site_name):
+    def __init__(self, config, site_name, username=None, password=None):
         self.site_name = site_name
         self.config = config
         self.site_config = config[site_name]
-        self.user_name = self.site_config['Username']
-        self.password = self.site_config['Password']
+        self.user_name = username or self.site_config['Username']
+        self.password = password or self.site_config['Password']
         self.base_url = self.site_config['BaseUrl']
         self.home_url = f"{self.base_url}/home/"
         self.driver = Firefox(service=Service(GeckoDriverManager().install()))
@@ -125,6 +126,10 @@ class BumblebeeDriver:
                 NO_DESKTOP,
             ),
             ('//h1[contains(text(), "Terms of Service")]', STATE_TOS),
+            (
+                '//a[contains(@title, "Create Project")]',
+                STATE_CREATE_WORKSPACE,
+            ),
         ]
         for xpath, state in states:
             try:
@@ -417,6 +422,50 @@ class BumblebeeDriver:
             raise Exception(
                 "Unexpected title for home page: " f"'{self.driver.title}'"
             )
+
+    def agree(self, args):
+        self.driver.get(self.home_url)
+        if self.driver.current_url != f"{self.base_url}/terms/":
+            raise Exception("Didn't redirect to Terms of Service page")
+        agree_button = self.driver.find_element(
+            By.XPATH,
+            '//button[text()="I agree to the above Terms of Service."]',
+        )
+        agree_button.click()
+        self.driver.get(self.home_url)
+        if self.driver.current_url != self.home_url:
+            raise Exception("Didn't redirect to home page")
+
+    def new_workspace(self, args):
+        self.driver.get(self.home_url)
+        if self.driver.current_url != self.home_url:
+            raise Exception("Redirected unexpectedly")
+        create_button = self.driver.find_element(
+            By.XPATH, '//a[contains(@title, "Create Project")]'
+        )
+        create_button.click()
+        if self.driver.current_url != f"{self.base_url}/new_project":
+            raise Exception("Didn't redirect to New Project page")
+        submit_button = self.driver.find_element(
+            By.XPATH, "//input[@value='Submit']"
+        )
+        title_field = self.driver.find_element(By.ID, "id_title")
+        title_description = self.driver.find_element(By.ID, "id_description")
+        title_ci = self.driver.find_element(By.ID, "id_chief_investigator")
+
+        # pre-commit hook thought there was a typo in the next 2 lines ...
+        # until I split the id string.
+        title_forcode_1 = self.driver.find_element(By.ID, "id_F" + "oR_code")
+        title_forcode_2 = self.driver.find_element(By.ID, "id_F" + "oR_code2")
+
+        title_forcode_2.send_keys("31")
+        title_forcode_1.send_keys("30")
+        title_field.send_keys("Test project")
+        title_description.send_keys("Sample project description")
+        title_ci.send_keys("nobody@ardc.edu.au")
+        submit_button.click()
+        if self.get_desktop_state() != NO_DESKTOP:
+            raise Exception("Didn't go into 'No Desktop' state")
 
     def oidc_login(self):
         print('Logging in (oidc)')

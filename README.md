@@ -25,7 +25,7 @@ the expected location and edit it to add details for your Bumblebee site(s).
 
 `<name> [-d] [-c config] [-s site] <action>`
 
-where <action> is one of:
+where <action> includes:
 
 - `status` - show the status us the user's desktop
 - `launch` - launch a desktop
@@ -35,10 +35,12 @@ where <action> is one of:
 - `unshelve` - unshelve the desktop
 - `reboot` - reboot the desktop
 - `delete` - delete the desktop
+- `scenario` - runs a test scenario
+- 'help' - prints command help
 
 The '-d' option enables debug logging.  The other options allow you to select
-the Bumblebee site to run against, and give an alternative location for the
-config file.
+the Bumblebee site to run against, give an alternative location for the
+config file, supply alternative credentials and so on.
 
 ## Login
 
@@ -55,6 +57,9 @@ of `kc-form-login`, unhides it if necessary, fills it in and submits it.
 The server needs to be run with `USE_OIDC=False` in the shell environment.
 The command told to use this mode by setting `UseOIDC = False` in the site's
 section of the config file.
+
+Restriction: Bumblebee 'classic' mode login only works for user accounts that
+have the 'staff' account set.
 
 ### OIDC mode
 
