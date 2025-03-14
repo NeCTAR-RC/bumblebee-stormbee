@@ -87,6 +87,7 @@ def main():
     reboot.add_argument('--hard', action='store_true', help='do a hard reboot')
     scenario = sub_parsers.add_parser('scenario', help='Run a scenario.')
     scenario.add_argument('name', help='the name of the scenario')
+    sub_parsers.add_parser('reset', help='clear database errors')
 
     (args, extra_args) = parser.parse_known_args()
     config = configparser.ConfigParser()

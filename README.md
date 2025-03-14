@@ -5,10 +5,12 @@ scenarios tests against various Bumblebee sites.
 
 ## Installation and dependencies
 
-The installation prerequisites for Stormbee are Firefox, Xvfb, libxi6
-and libgconf-2-4.
+The installation prerequisites for Stormbee are:
+* Firefox, Xvfb, libxi6, libgconf-2-4    # selenium prerequisites
+* default-libmysqlclient-dev pkg-config  # mysql client dependencies
+* python3-dev build-essential
 
-You can then install it by running "pip3 install -e ."
+You can then install Stormbee into a virtial env by running "pip3 install -e ."
 
 ## Config file
 

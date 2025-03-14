@@ -1,9 +1,12 @@
 [DEFAULT]
+# Defauilt settings (apart from DefaultSite) may be overridden by
+# site settings.
+
+# Bumblebee credentials used to run the tests
 Username = test-user
 Password = password
 
 # These are the default page titles (as extracted by selenium)
-# They may be overridden by site settings.
 
 # The Home page
 HomeTitle = Virtual Desktop Service - ARDC Nectar Research Cloud
@@ -26,6 +29,13 @@ DefaultSite = test
 UseOIDC = True
 PollSeconds = 5
 PollRetries = 50
+
+# Backend database settings for repairing errors.
+DbHost = db.example.com
+DbUser = bumblebee
+DbPassword = ...
+DbDatabase = bumblebee
+DbPort = 3306
 
 [prod]
 BaseUrl = https://vds.example.com

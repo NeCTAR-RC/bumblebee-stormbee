@@ -37,6 +37,7 @@ from stormbee.constants import (
     STATE_NOT_LOGGED_IN,
     STATE_UNKNOWN,
 )
+from stormbee import db
 from stormbee import scenarios
 
 
@@ -191,6 +192,16 @@ class BumblebeeDriver:
             ]:
                 desktop_type = self.get_current_desktop()
                 print(f"Current desktop's type is '{desktop_type}'")
+
+    def reset(self, args):
+        if not self.site_config.get('DbHost', None):
+            return
+        rep = db.DBRepairer(self.site_config)
+        errors = rep.error_counts()
+        if errors:
+            print(f"Clearing DB errors: {errors}")
+            rep.clear_errors()
+            print("Done")
 
     def scenario(self, args, extra_args):
         scenario_cls = scenarios.find_scenario_class(args.name)
