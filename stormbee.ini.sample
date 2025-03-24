@@ -6,6 +6,9 @@
 Username = test-user
 Password = password
 
+# The Bumblebee 'user name' for the test user.
+BumblebeeUsername = test.user@example.com
+
 # These are the default page titles (as extracted by selenium)
 
 # The Home page

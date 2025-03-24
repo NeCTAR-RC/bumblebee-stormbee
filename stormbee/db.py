@@ -86,7 +86,7 @@ class DBRepairer:
             c.close()
 
     def _get_user_id(self):
-        username = self.config['Username']
+        username = self.config['BumblebeeUsername']
         c = self.db.cursor()
         try:
             c.execute(
@@ -96,7 +96,7 @@ class DBRepairer:
             )
             row = c.fetchone()
             if row is None:
-                raise Exception("Cannot find user {username}")
+                raise Exception(f"Cannot find user {username}")
             return row[0]
         finally:
             c.close()
