@@ -47,10 +47,14 @@ def report(config_section, service_name, state=0, output="OK", verbose=False):
     result = None
     try:
         if verbose:
-            print(f"Raw Nagios NRDP request: {params}")
+            print(f"Raw Nagios NRDP request params: {params}")
         response = requests.post(url, params=params)
         if verbose:
-            print(f"Raw Nagios NRDP response: {response.text}")
+            print(
+                f"Raw Nagios NRDP response: {response.status_code} "
+                f"{response.reason}, url={response.url}"
+            )
+            print(f"Raw Nagios NRDP response body:\n{response.text}")
         result = ET.ElementTree(ET.fromstring(response.text))
     except Exception as e:
         traceback.print_exception(*sys.exc_info())

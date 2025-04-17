@@ -102,6 +102,14 @@ def main():
     if site_name not in config:
         print(f"There is no section for site '{site_name}' in the config file")
         exit(code=2)
+    if args.nagios:
+        if (
+            not getattr(args, 'name', None)
+            or not getattr(args, 'zone', None)
+            or not getattr(args, 'desktop', None)
+        ):
+            print("Nagios reporting needs a zone, desktop type and scenario")
+            exit(code=2)
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
