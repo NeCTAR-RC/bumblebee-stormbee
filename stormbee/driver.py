@@ -13,6 +13,7 @@
 
 
 from contextlib import contextmanager
+import logging
 import time
 
 from selenium.common.exceptions import (
@@ -39,6 +40,8 @@ from stormbee.constants import (
 )
 from stormbee import db
 from stormbee import scenarios
+
+LOG = logging.getLogger(__name__)
 
 
 def set_viewport_size(driver, width, height):
@@ -138,6 +141,7 @@ class BumblebeeDriver:
                 return state
             except NoSuchElementException:
                 pass
+        LOG.debug(f"Page body for unknown state:\n{self.driver.page_source}")
         return STATE_UNKNOWN
 
     def get_current_desktop(self):
