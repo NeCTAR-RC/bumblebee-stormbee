@@ -72,6 +72,13 @@ class DBRepairer:
                 "where status = 'VM_Error' and user_id = %s",
                 (self.user_id,),
             )
+            # Also mark any VM_OK records for the user as No_VM so that
+            # get_vm_state doesn't throw exceptions.
+            c.execute(
+                "update vm_manager_vmstatus set status = 'No_VM' "
+                "where status = 'VM_OK' and user_id = %s",
+                (self.user_id,),
+            )
             c.execute(
                 "update vm_manager_cloudresource set deleted = now() "
                 "where error_flag is not NULL and deleted is NULL "
