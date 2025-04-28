@@ -20,6 +20,7 @@ import sys
 import traceback
 
 from pyvirtualdisplay import Display
+from stormbee import db
 from stormbee.driver import BumblebeeDriver
 from stormbee.nagios import report
 
@@ -87,7 +88,12 @@ def main():
     reboot.add_argument('--hard', action='store_true', help='do a hard reboot')
     scenario = sub_parsers.add_parser('scenario', help='Run a scenario.')
     scenario.add_argument('name', help='the name of the scenario')
-    sub_parsers.add_parser('reset', help='clear database errors')
+    reset = sub_parsers.add_parser('reset', help='clear database errors')
+    reset.add_argument(
+        '--force',
+        action='store_true',
+        help='run remediations even if no errors are reported',
+    )
 
     (args, extra_args) = parser.parse_known_args()
     config = configparser.ConfigParser()
@@ -103,10 +109,10 @@ def main():
         print(f"There is no section for site '{site_name}' in the config file")
         exit(code=2)
     if args.nagios:
-        if (
-            not getattr(args, 'name', None)
-            or not getattr(args, 'zone', None)
-            or not getattr(args, 'desktop', None)
+        if not (
+            getattr(args, 'name', None)
+            and getattr(args, 'zone', None)
+            and getattr(args, 'desktop', None)
         ):
             print("Nagios reporting needs a zone, desktop type and scenario")
             exit(code=2)
@@ -115,18 +121,43 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
 
     failure = None
-    with Display(backend="xvfb", visible=0, size=[800, 600]):
-        bd = BumblebeeDriver(
-            config, site_name, username=args.username, password=args.password
-        )
+
+    site_config = config[site_name]
+    if args.action == 'reset':
+        if not site_config.get('DbHost', None):
+            print("DbHost is not configured: cannot reset DB")
+            exit(code=2)
         try:
-            bd.login(args)
-            bd.run(args.action, args, extra_args)
+            rep = db.DBRepairer(site_config)
+            errors = rep.error_counts()
+            if errors or args.force:
+                print(f"Clearing DB errors: {errors}")
+                rep.clear_errors()
+                print("DB reset done")
+            else:
+                print(
+                    "DB reset skipped: no Volume, Instance or VMStatus "
+                    "records in error state"
+                )
         except Exception:
             failure = sys.exc_info()
-        finally:
-            # Don't leak external web browser processes!
-            bd.close()
+    else:
+        with Display(backend="xvfb", visible=0, size=[800, 600]):
+            bd = BumblebeeDriver(
+                site_config,
+                site_name,
+                username=args.username,
+                password=args.password,
+            )
+            try:
+                if args.action not in ['reset']:
+                    bd.login(args)
+                    bd.run(args.action, args, extra_args)
+            except Exception:
+                failure = sys.exc_info()
+            finally:
+                # Don't leak external web browser processes!
+                bd.close()
 
     if args.nagios:
         # Service name will need to match what Nagios expects.
@@ -134,7 +165,7 @@ def main():
         svcname = f"tempest_{args.zone}_desktop_{args.name}_{args.desktop}"
         if failure:
             report(
-                config[site_name],
+                site_config,
                 svcname,
                 state=2,
                 output=f"ERROR: {args.action} failed: {str(failure)}",
@@ -142,12 +173,13 @@ def main():
             )
         else:
             report(
-                config[site_name],
+                site_config,
                 svcname,
                 state=0,
                 output=f"OK: {args.action} succeeded",
                 verbose=True,
             )
+
     if failure:
         print(f"Stormbee failure for action {args.action} on site {site_name}")
         traceback.print_exception(*failure)
