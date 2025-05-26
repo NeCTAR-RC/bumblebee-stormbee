@@ -88,11 +88,17 @@ def main():
     reboot.add_argument('--hard', action='store_true', help='do a hard reboot')
     scenario = sub_parsers.add_parser('scenario', help='Run a scenario.')
     scenario.add_argument('name', help='the name of the scenario')
-    reset = sub_parsers.add_parser('reset', help='clear database errors')
+    reset = sub_parsers.add_parser(
+        'reset', help='remediate database errors for the test user'
+    )
     reset.add_argument(
         '--force',
         action='store_true',
-        help='run remediations even if no errors are reported',
+        help='run remediations irrespective of errors reported',
+    )
+    sub_parsers.add_parser(
+        'clear',
+        help='clear (mark as deleted) all database records for the test user',
     )
 
     (args, extra_args) = parser.parse_known_args()
@@ -123,22 +129,25 @@ def main():
     failure = None
 
     site_config = config[site_name]
-    if args.action == 'reset':
+    if args.action in ['reset', 'clear']:
         if not site_config.get('DbHost', None):
             print("DbHost is not configured: cannot reset DB")
             exit(code=2)
         try:
             rep = db.DBRepairer(site_config)
-            errors = rep.error_counts()
-            if errors or args.force:
-                print(f"Clearing DB errors: {errors}")
-                rep.clear_errors()
-                print("DB reset done")
+            if args.action == 'reset':
+                errors = rep.error_counts()
+                if errors or args.force:
+                    print(f"Clearing DB errors: {errors}")
+                    rep.fix_errors()
+                    print("DB reset done")
+                else:
+                    print(
+                        "DB reset skipped: no Volume, Instance or VMStatus "
+                        "records in error state"
+                    )
             else:
-                print(
-                    "DB reset skipped: no Volume, Instance or VMStatus "
-                    "records in error state"
-                )
+                rep.mark_all_as_deleted()
         except Exception:
             failure = sys.exc_info()
     else:

@@ -58,7 +58,7 @@ class DBRepairer:
         else:
             return {}
 
-    def clear_errors(self):
+    def fix_errors(self):
         """Clear any errors for the stormbee test user.
 
         VMStatus records are set to No_VM.  Volume and Instance records are
@@ -95,6 +95,35 @@ class DBRepairer:
                 "and vmstatus.user_id = %s",
                 (self.user_id,),
             )
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            raise e
+        finally:
+            c.close()
+
+    def mark_all_as_deleted(self):
+        """Mark as deleted all records for the stormbee test user.
+
+        VMStatus records are set to No_VM.  Volume and Instance records are
+        marked as deleted.
+        """
+
+        c = self.db.cursor()
+        try:
+            c.execute(
+                "update vm_manager_cloudresource set deleted = now() "
+                "where deleted is NULL and user_id = %s",
+                (self.user_id,),
+            )
+
+            # Mark as No_VM any VMStatus records for the test user
+            c.execute(
+                "update vm_manager_vmstatus set status = 'No_VM' "
+                "where user_id = %s",
+                (self.user_id,),
+            )
+
             self.db.commit()
         except Exception as e:
             self.db.rollback()
