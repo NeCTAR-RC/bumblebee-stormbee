@@ -38,11 +38,17 @@ where <action> includes:
 - `reboot` - reboot the desktop
 - `delete` - delete the desktop
 - `scenario` - runs a test scenario
+- `reset` - resets database entries in error for test user
+- `clear` - clears (marks as deleted) all database entries for test user
 - 'help' - prints command help
 
 The '-d' option enables debug logging.  The other options allow you to select
 the Bumblebee site to run against, give an alternative location for the
 config file, supply alternative credentials and so on.
+
+The 'reset' and 'clear' actions require network access to the backend DB
+for the Bumblebee site being tested, and that the DB* settings are provided
+in the stormbee.ini file.
 
 ## Login
 
